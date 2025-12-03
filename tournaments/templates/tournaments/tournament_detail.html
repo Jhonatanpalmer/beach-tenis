@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>{{ tournament.name }}</h2>
+    <p>
+        Início: {{ tournament.start_date }}{% if tournament.end_date %} | Fim: {{ tournament.end_date }}{% endif %}<br>
+        Divisão: {{ tournament.get_division_display }}{% if tournament.category %} | Categoria {{ tournament.category.name }}{% endif %}<br>
+        Tie-break: {% if tournament.tie_break_enabled %}Sim ({{ tournament.tie_break_points }} pontos + {{ tournament.tie_break_margin }} de diferença){% else %}Não{% endif %}
+    </p>
+    <p>{{ tournament.notes }}</p>
+</section>
+
+<section class="card">
+    <h3>Adicionar partida</h3>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_match" />
+        {{ match_form.as_p }}
+        <button type="submit">Salvar partida</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Partidas</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Etapa</th>
+                <th>Dupla A</th>
+                <th>Dupla B</th>
+                <th>Sets</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+                <tr>
+                    <td>{{ match.round_name }}</td>
+                    <td>{{ match.team_one.name }}</td>
+                    <td>{{ match.team_two.name }}</td>
+                    <td>{{ match.team_one_sets_won }} x {{ match.team_two_sets_won }}</td>
+                    <td>
+                        <a href="{% url 'tournaments:match_result' match.pk %}">Registrar resultado</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">Cadastre partidas para este torneio.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Classificação (Vitórias → Sets → Pontos)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Dupla</th>
+                <th>Jogos</th>
+                <th>Vitórias</th>
+                <th>Derrotas</th>
+                <th>Sets</th>
+                <th>Pontos (15/30/40/GAME)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in standings %}
+                <tr>
+                    <td>{{ row.team.name }}</td>
+                    <td>{{ row.matches }}</td>
+                    <td>{{ row.wins }}</td>
+                    <td>{{ row.losses }}</td>
+                    <td>{{ row.sets }}</td>
+                    <td>{{ row.points }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6">Sem dados ainda.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

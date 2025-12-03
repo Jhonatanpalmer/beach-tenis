@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Novo torneio</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Salvar</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Torneios</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Divisão</th>
+                <th>Período</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tournament in tournaments %}
+                <tr>
+                    <td>{{ tournament.name }}</td>
+                    <td>{{ tournament.get_division_display }}</td>
+                    <td>{{ tournament.start_date }} {% if tournament.end_date %}- {{ tournament.end_date }}{% endif %}</td>
+                    <td><a href="{% url 'tournaments:tournament_detail' tournament.pk %}">Detalhes</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Cadastre seu primeiro torneio.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

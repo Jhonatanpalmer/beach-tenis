@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Cadastrar participante</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Salvar</button>
+    </form>
+</section>
+
+<hr class="section-divider">
+
+<section class="card">
+    <h2>Participantes</h2>
+    <form method="get" class="search-form">
+        <label for="participant-search">Pesquisar participante</label>
+        <div class="search-form__controls">
+            <input id="participant-search" type="text" name="q" placeholder="Digite um nome" value="{{ search_query }}">
+            <button type="submit">Buscar</button>
+            {% if search_query %}
+                <a class="btn-secondary" href="{% url 'tournaments:participant_list' %}">Limpar</a>
+            {% endif %}
+        </div>
+    </form>
+    <p class="muted-text">{{ participants|length }} resultado(s) encontrado(s)</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Gênero</th>
+                <th>Nascimento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+                <tr>
+                    <td>{{ participant.full_name }}</td>
+                    <td>{{ participant.category.name }}</td>
+                    <td>{{ participant.get_gender_display }}</td>
+                    <td>{{ participant.birth_date }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Cadastre os participantes para começar.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

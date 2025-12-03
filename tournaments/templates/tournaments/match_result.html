@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Resultado - {{ match.team_one.name }} x {{ match.team_two.name }}</h2>
+    <p>Torneio: <a href="{% url 'tournaments:tournament_detail' match.tournament.pk %}">{{ match.tournament.name }}</a></p>
+</section>
+
+<section class="card">
+    <h3>Sets</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        {% for form in formset %}
+            <fieldset class="card">
+                <legend>Set {{ form.instance.set_number|default:forloop.counter }}</legend>
+                {{ form.as_p }}
+            </fieldset>
+        {% endfor %}
+        <h3>Pontos acumulados</h3>
+        {{ points_form.as_p }}
+        <button type="submit">Salvar resultado</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Resumo das duplas</h3>
+    <div class="match-result">
+        <div class="match-result__team {% if match.winner_id == match.team_one_id %}match-result__team--winner{% elif match.winner %}match-result__team--loser{% endif %}">
+            <div>
+                <strong>{{ match.team_one.name }}</strong><br>
+                <small>Games acumulados: {{ team_one_games }}</small>
+            </div>
+            <div>
+                <small>Vitórias: {{ team_one_wins }}</small><br>
+                <small>Derrotas: {{ team_one_losses }}</small>
+            </div>
+        </div>
+        <div class="match-result__team {% if match.winner_id == match.team_two_id %}match-result__team--winner{% elif match.winner %}match-result__team--loser{% endif %}">
+            <div>
+                <strong>{{ match.team_two.name }}</strong><br>
+                <small>Games acumulados: {{ team_two_games }}</small>
+            </div>
+            <div>
+                <small>Vitórias: {{ team_two_wins }}</small><br>
+                <small>Derrotas: {{ team_two_losses }}</small>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

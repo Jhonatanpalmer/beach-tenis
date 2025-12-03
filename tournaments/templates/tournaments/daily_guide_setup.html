@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Novo Torneio Rápido</h2>
+    <p>Informe o nome do evento e liste os participantes (um por linha). Depois você poderá formar ou sortear as duplas.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Criar torneio</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Torneios rápidos salvos</h3>
+    {% if guides %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Torneio</th>
+                    <th>Criado em</th>
+                    <th>Participantes</th>
+                    <th>Duplas</th>
+                    <th>Partidas</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for guide in guides %}
+                    <tr>
+                        <td>{{ guide.name }}</td>
+                        <td>{{ guide.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ guide.participant_total }}</td>
+                        <td>{{ guide.team_total }}</td>
+                        <td>{{ guide.match_total }}</td>
+                        <td><a href="{% url 'tournaments:daily_guide_detail' guide.pk %}">Abrir</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted-text">Nenhum Torneio Rápido foi salvo até agora. Crie o primeiro usando o formulário acima.</p>
+    {% endif %}
+</section>
+{% endblock %}

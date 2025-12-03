@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <div class="actions-row">
+        <div>
+            <h2>{{ guide.name }}</h2>
+            <p class="muted-text">{{ participants|length }} participante(s) • {{ teams|length }} dupla(s) • {{ matches|length }} partida(s)</p>
+        </div>
+        <span class="status-badge">Modo: {{ guide.get_pairing_mode_display }}</span>
+    </div>
+    <p>Compartilhe esta página para acompanhar o Torneio Rápido. Após cada partida, registre o placar e veja o destaque automático de vencedores (verde) e perdedores (vermelho).</p>
+</section>
+
+<section class="card">
+    <h3>Classificação do dia</h3>
+    {% if matches %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Dupla</th>
+                    <th>J</th>
+                    <th>V</th>
+                    <th>D</th>
+                    <th>Games +</th>
+                    <th>Games -</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in standings %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ row.team.name }}</td>
+                        <td>{{ row.matches }}</td>
+                        <td>{{ row.wins }}</td>
+                        <td>{{ row.losses }}</td>
+                        <td>{{ row.games_for }}</td>
+                        <td>{{ row.games_against }}</td>
+                        <td>{{ row.game_diff }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted-text">Os times aparecerão aqui assim que a primeira partida for registrada.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>Participantes</h3>
+    <ul>
+        {% for participant in participants %}
+            <li>
+                {{ participant.name }}
+                {% if participant.id in assigned_participant_ids %}
+                    <small class="muted-text">(já em uma dupla)</small>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section class="card">
+    <h3>Montar duplas</h3>
+    <div class="actions-row">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="random_pair">
+            <button type="submit" {% if available_participants|length < 2 %}disabled{% endif %}>Sortear duplas automaticamente</button>
+        </form>
+        {% if available_participants|length < 2 %}
+            <span class="muted-text">Cadastre mais participantes ou libere jogadores para novos sorteios.</span>
+        {% endif %}
+    </div>
+    <h4>Selecionar manualmente</h4>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="manual_pair">
+        {{ pair_form.as_p }}
+        <button type="submit" {% if not manual_pair_available %}disabled{% endif %}>Adicionar dupla</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3>Duplas formadas</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Dupla</th>
+                <th>Jogadores</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams %}
+                <tr>
+                    <td>{{ team.name }}</td>
+                    <td>{{ team.player_one.name }} + {{ team.player_two.name }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="2">Monte ou sorteie as duplas para começar.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h3>Registrar partida</h3>
+    {% if teams|length < 2 %}
+        <p class="muted-text">Cadastre pelo menos duas duplas para liberar o registro de partidas.</p>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="{% if editing_match %}update_match{% else %}record_match{% endif %}">
+            {% if editing_match %}
+                <input type="hidden" name="match_id" value="{{ editing_match.id }}">
+                <p class="muted-text">Editando o resultado de <strong>{{ editing_match.team_one.name }}</strong> x <strong>{{ editing_match.team_two.name }}</strong>.</p>
+            {% endif %}
+            {{ match_form.as_p }}
+            <button type="submit">{% if editing_match %}Atualizar placar{% else %}Salvar placar{% endif %}</button>
+            {% if editing_match %}
+                <a href="{% url 'tournaments:daily_guide_detail' guide.pk %}" class="btn-secondary">Cancelar edição</a>
+            {% endif %}
+        </form>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h3>Resultados</h3>
+    {% for match in matches %}
+        <div class="match-result">
+            <div class="match-result__team {% if match.winner_id == match.team_one_id %}match-result__team--winner{% elif match.winner %}match-result__team--loser{% endif %}">
+                <span>{{ match.team_one.name }}</span>
+                <span>{{ match.team_one_score }}</span>
+            </div>
+            <div class="match-result__team {% if match.winner_id == match.team_two_id %}match-result__team--winner{% elif match.winner %}match-result__team--loser{% endif %}">
+                <span>{{ match.team_two.name }}</span>
+                <span>{{ match.team_two_score }}</span>
+            </div>
+            <div>
+                <a class="btn-secondary" href="{% url 'tournaments:daily_guide_detail' guide.pk %}?editar={{ match.id }}">Editar</a>
+            </div>
+        </div>
+    {% empty %}
+        <p class="muted-text">Ainda não há partidas registradas.</p>
+    {% endfor %}
+</section>
+{% endblock %}

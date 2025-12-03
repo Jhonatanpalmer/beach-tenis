@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Torneios ativos</h2>
+    <div class="grid">
+        {% for tournament in tournaments %}
+            <article class="card">
+                <h3><a href="{% url 'tournaments:tournament_detail' tournament.pk %}">{{ tournament.name }}</a></h3>
+                <p>{{ tournament.start_date }} {% if tournament.end_date %}- {{ tournament.end_date }}{% endif %}</p>
+                <p>Divisão: {{ tournament.get_division_display }} {% if tournament.category %}| Categoria {{ tournament.category.name }}{% endif %}</p>
+            </article>
+        {% empty %}
+            <p>Nenhum torneio cadastrado ainda.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card">
+    <h2>Últimos participantes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Gênero</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in latest_participants %}
+                <tr>
+                    <td>{{ participant.full_name }}</td>
+                    <td>{{ participant.category.name }}</td>
+                    <td>{{ participant.get_gender_display }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">Cadastre ao menos um participante.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Partidas recentes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Torneio</th>
+                <th>Dupla A</th>
+                <th>Dupla B</th>
+                <th>Sets</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in upcoming_matches %}
+                <tr>
+                    <td>{{ match.tournament.name }}</td>
+                    <td>{{ match.team_one.name }}</td>
+                    <td>{{ match.team_two.name }}</td>
+                    <td>{{ match.team_one_sets_won }} x {{ match.team_two_sets_won }}</td>
+                    <td><a href="{% url 'tournaments:match_result' match.pk %}">Registrar resultado</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">Nenhuma partida cadastrada.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
