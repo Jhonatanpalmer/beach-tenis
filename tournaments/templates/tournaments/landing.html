@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="landing-hero card text-center text-white border-0 position-relative overflow-hidden">
+    <div class="landing-overlay"></div>
+    <div class="landing-hero__content position-relative">
+        <p class="badge bg-light text-dark px-3 py-2 rounded-pill mb-3">Bem-vindo ao universo Beach Tennis</p>
+        <h1 class="display-4 fw-bold mb-3">Play do Babuzão</h1>
+        <p class="lead mb-4">Organize torneios relâmpago, acompanhe o mural dos campeões e mantenha seu clube sempre em jogo.</p>
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+            <a class="btn btn-lg btn-light text-uppercase fw-bold" href="{% url 'tournaments:dashboard' %}">Acessar Play do Babuzão</a>
+            <a class="btn btn-lg btn-outline-light" href="#features">Conhecer recursos</a>
+            <a class="btn btn-lg btn-warning fw-semibold" href="{% url 'tournaments:sponsor_page' %}">Seja um patrocinador</a>
+        </div>
+        <p class="landing-hero__views badge mt-4">{{ landing_total_views|default:0 }} acessos únicos registrados</p>
+    </div>
+</div>
+
+<section id="features" class="row g-4 mt-1">
+    <div class="col-md-4">
+        <div class="card h-100 shadow feature-card">
+            <div class="card-body">
+                <h3 class="h5 fw-bold">Mural dos Campeões</h3>
+                <p class="text-muted">Registre o pódio de cada torneio rápido e deixe a galera motivada com um painel moderno.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow feature-card">
+            <div class="card-body">
+                <h3 class="h5 fw-bold">Cadastro inteligente</h3>
+                <p class="text-muted">Gerencie participantes, categorias e duplas com poucos cliques e formulários responsivos.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow feature-card">
+            <div class="card-body">
+                <h3 class="h5 fw-bold">Experiência mobile</h3>
+                <p class="text-muted">Interface pensada para celulares: acesse o Play do Babuzão direto da quadra.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card mt-4 sponsor-highlight">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+        <div>
+            <p class="text-uppercase text-muted mb-1">Nossa rede</p>
+            <h2 class="h4 fw-bold mb-2">Marcas que apoiam o Play do Babuzão</h2>
+            <p class="text-muted mb-3">Cadastre patrocinadores pelo Django admin para que apareçam automaticamente nesta galeria. É a vitrine oficial para parceiros do clube.</p>
+            <a class="btn btn-primary rounded-pill" href="{% url 'tournaments:sponsor_page' %}">Quero patrocinar</a>
+        </div>
+        <div class="sponsor-highlight__logos">
+            {% if featured_sponsors %}
+                {% for sponsor in featured_sponsors %}
+                    <div class="sponsor-highlight__logo">
+                        <img src="{{ sponsor.logo.url }}" alt="Logo {{ sponsor.name }}" loading="lazy">
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted mb-0">Ainda não há patrocinadores ativos. Quando você fizer upload de logos pelo admin, eles aparecem aqui.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="card mt-4 bg-white shadow-sm border-0">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-6">
+            <h2 class="fw-bold">Tudo o que o seu beach tennis precisa</h2>
+            <p class="text-muted">Crie torneios rápidos, registre pneus lendários, finalize eventos com apenas um clique e mantenha um histórico visual para o seu clube.</p>
+            <a class="btn btn-primary btn-lg rounded-pill" href="{% url 'tournaments:dashboard' %}">Acessar Play do Babuzão</a>
+        </div>
+        <div class="col-lg-6 text-center">
+            <div class="landing-metrics card border-0 text-white">
+                <div>
+                    <span class="display-6 fw-bold">+120</span>
+                    <p class="mb-0">Partidas registradas</p>
+                </div>
+                <div>
+                    <span class="display-6 fw-bold">24</span>
+                    <p class="mb-0">Guias do dia finalizados</p>
+                </div>
+                <div>
+                    <span class="display-6 fw-bold">∞</span>
+                    <p class="mb-0">Histórias em quadra</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .landing-hero {
+        min-height: 60vh;
+        background-image: linear-gradient(120deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80");
+        background-size: cover;
+        background-position: center;
+        border-radius: 28px;
+        padding: 4rem 2rem;
+    }
+    .landing-hero__content {
+        z-index: 1;
+    }
+    .landing-hero__views {
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        border-radius: 999px;
+        padding: 0.65rem 1.25rem;
+        font-size: 1rem;
+        display: inline-block;
+    }
+    .landing-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(255,127,80,0.35), rgba(0,0,0,0.3));
+        z-index: 0;
+    }
+    .feature-card {
+        border: none;
+        border-radius: 18px;
+    }
+    .feature-card:hover {
+        transform: translateY(-4px);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .landing-metrics {
+        background: linear-gradient(120deg, #ff7f50, #ed5f29);
+        border-radius: 24px;
+        padding: 2rem;
+        display: flex;
+        justify-content: space-between;
+        text-transform: uppercase;
+    }
+    .sponsor-highlight {
+        border: none;
+        border-radius: 24px;
+        padding: 2rem;
+        background: #fff7f2;
+        box-shadow: 0 18px 40px rgba(255, 127, 80, 0.15);
+    }
+    .sponsor-highlight__logos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        width: 100%;
+        align-items: center;
+    }
+    .sponsor-highlight__logo {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 90px;
+    }
+    .sponsor-highlight__logo img {
+        max-height: 70px;
+        width: 100%;
+        object-fit: contain;
+    }
+    @media (max-width: 576px) {
+        .landing-hero {
+            padding: 3rem 1.25rem;
+        }
+        .landing-metrics {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        .sponsor-highlight__logos {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+    }
+</style>
+{% endblock %}

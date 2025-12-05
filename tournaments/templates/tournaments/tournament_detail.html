@@ -11,72 +11,231 @@
 </section>
 
 <section class="card">
-    <h3>Adicionar partida</h3>
+    <h3>Participantes inscritos ({{ tournament_participants|length }})</h3>
+    {% if tournament_participants %}
+        <ul>
+            {% for enrollment in tournament_participants %}
+                <li>
+                    {{ enrollment.participant.full_name }}
+                    {% if enrollment.participant.id in unpaired_ids %}
+                        <span class="status-badge">Disponível</span>
+                    {% else %}
+                        <span class="status-badge">Em dupla</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted-text">Nenhum participante associado ao torneio ainda.</p>
+    {% endif %}
+    <h4>Adicionar participantes elegíveis</h4>
     <form method="post">
         {% csrf_token %}
-        <input type="hidden" name="action" value="create_match" />
-        {{ match_form.as_p }}
-        <button type="submit">Salvar partida</button>
+        <input type="hidden" name="action" value="add_participants" />
+        {{ participant_form.as_p }}
+        <button type="submit">Adicionar selecionados</button>
     </form>
 </section>
 
 <section class="card">
-    <h3>Partidas</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Etapa</th>
-                <th>Dupla A</th>
-                <th>Dupla B</th>
-                <th>Sets</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for match in matches %}
-                <tr>
-                    <td>{{ match.round_name }}</td>
-                    <td>{{ match.team_one.name }}</td>
-                    <td>{{ match.team_two.name }}</td>
-                    <td>{{ match.team_one_sets_won }} x {{ match.team_two_sets_won }}</td>
-                    <td>
-                        <a href="{% url 'tournaments:match_result' match.pk %}">Registrar resultado</a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5">Cadastre partidas para este torneio.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h3>Montagem de duplas</h3>
+    {% if unpaired_participants %}
+        <p class="muted-text">Participantes livres: {% for person in unpaired_participants %}{{ person.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}
+        <p class="muted-text">Todos os participantes já estão designados em alguma dupla.</p>
+    {% endif %}
+    <div class="grid">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="manual_pair" />
+            {{ manual_pair_form.as_p }}
+            <button type="submit">Salvar dupla manualmente</button>
+        </form>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="auto_pair" />
+            {{ auto_pair_form.as_p }}
+            <button type="submit">Gerar duplas automáticas</button>
+        </form>
+    </div>
+    <h4>Duplas deste torneio</h4>
+    {% if enrolled_teams %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Grupo</th>
+                        <th>Dupla</th>
+                        <th>Jogadores</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in enrolled_teams %}
+                        <tr>
+                            <td>{{ entry.group_label|default:"-" }}</td>
+                            <td>{{ entry.team.name }}</td>
+                            <td>{{ entry.team.player_one.full_name }} / {{ entry.team.player_two.full_name }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted-text">Cadastre ao menos uma dupla para iniciar as partidas.</p>
+    {% endif %}
 </section>
 
 <section class="card">
-    <h3>Classificação (Vitórias → Sets → Pontos)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Dupla</th>
-                <th>Jogos</th>
-                <th>Vitórias</th>
-                <th>Derrotas</th>
-                <th>Sets</th>
-                <th>Pontos (15/30/40/GAME)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in standings %}
-                <tr>
-                    <td>{{ row.team.name }}</td>
-                    <td>{{ row.matches }}</td>
-                    <td>{{ row.wins }}</td>
-                    <td>{{ row.losses }}</td>
-                    <td>{{ row.sets }}</td>
-                    <td>{{ row.points }}</td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="6">Sem dados ainda.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h3>Grupos e mata-mata</h3>
+    <form method="post" class="grid">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="grouping" />
+        {{ grouping_form.as_p }}
+        <button type="submit">Aplicar configurações</button>
+    </form>
+    {% if group_summary %}
+        {% for label, entries in group_summary.items %}
+            <h4>{{ label }}</h4>
+            <p>{% for entry in entries %}{{ entry.team.name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted-text">Sem duplas.</span>{% endfor %}</p>
+        {% endfor %}
+    {% else %}
+        <p class="muted-text">Nenhum grupo criado ainda.</p>
+    {% endif %}
 </section>
+
+{% if quick_result_form %}
+<section class="card">
+    <h3>Registrar resultado</h3>
+    <p class="muted-text">Após sortear os grupos, escolha duas duplas e informe o placar final em sets.</p>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="quick_result" />
+        {{ quick_result_form.as_p }}
+        <button type="submit">Salvar resultado</button>
+    </form>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var teamA = document.getElementById("id_quick-team_one");
+            var teamB = document.getElementById("id_quick-team_two");
+            if (!teamA || !teamB) {
+                return;
+            }
+            var original = Array.from(teamB.options).map(function (option) {
+                return { value: option.value, label: option.text, selected: option.selected };
+            });
+            function syncOptions() {
+                var current = teamB.value;
+                var selectedA = teamA.value;
+                teamB.innerHTML = "";
+                original.forEach(function (entry) {
+                    if (entry.value && entry.value === selectedA) {
+                        return;
+                    }
+                    var option = document.createElement("option");
+                    option.value = entry.value;
+                    option.textContent = entry.label;
+                    option.selected = entry.value === current;
+                    teamB.appendChild(option);
+                });
+                if (!teamB.value && teamB.options.length) {
+                    teamB.selectedIndex = 0;
+                }
+            }
+            syncOptions();
+            teamA.addEventListener("change", syncOptions);
+        });
+    </script>
+</section>
+{% endif %}
+
+<section class="card">
+    <h3>Classificação (Vitórias → Sets → Pontos)</h3>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Etapa</th>
+                    <th>Dupla A</th>
+                    <th>Dupla B</th>
+                    <th>Game</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in matches %}
+                    <tr>
+                        <td>{{ match.round_name }}</td>
+                        <td>
+                            <span class="result-team {% if match.winner_id == match.team_one_id %}result-team--winner{% else %}result-team--loser{% endif %}">
+                                {{ match.team_one.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="result-team {% if match.winner_id == match.team_two_id %}result-team--winner{% else %}result-team--loser{% endif %}">
+                                {{ match.team_two.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="muted-text">game</span><br>
+                            <strong>{{ match.team_one_sets_won }}x{{ match.team_two_sets_won }}</strong>
+                        </td>
+                        <td>
+                            <a href="?editar_partida={{ match.pk }}#editar-resultados">Editar resultado</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5">Nenhuma partida registrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <h3>Classificação geral</h3>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Dupla</th>
+                    <th>J</th>
+                    <th>V</th>
+                    <th>D</th>
+                    <th>Games +</th>
+                    <th>Games -</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in standings %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ row.team.name }}</td>
+                        <td>{{ row.matches }}</td>
+                        <td>{{ row.wins }}</td>
+                        <td>{{ row.losses }}</td>
+                        <td>{{ row.games_for }}</td>
+                        <td>{{ row.games_against }}</td>
+                        <td>{{ row.game_balance }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8">Sem dados ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if game_edit_form and editing_match %}
+<section class="card" id="editar-resultados">
+    <h3>Editar resultado: {{ editing_match.team_one.name }} x {{ editing_match.team_two.name }}</h3>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="edit_result" />
+        {{ game_edit_form.as_p }}
+        <button type="submit">Atualizar game</button>
+    </form>
+</section>
+{% endif %}
 {% endblock %}

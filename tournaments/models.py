@@ -41,6 +41,28 @@ class DailyGuide(models.Model):
 		choices=PairingMode.choices,
 		default=PairingMode.UNDECIDED,
 	)
+	champion = models.ForeignKey(
+		"DailyTeam",
+		on_delete=models.SET_NULL,
+		related_name="champion_guides",
+		null=True,
+		blank=True,
+	)
+	runner_up = models.ForeignKey(
+		"DailyTeam",
+		on_delete=models.SET_NULL,
+		related_name="runner_up_guides",
+		null=True,
+		blank=True,
+	)
+	third_place = models.ForeignKey(
+		"DailyTeam",
+		on_delete=models.SET_NULL,
+		related_name="third_place_guides",
+		null=True,
+		blank=True,
+	)
+	finished_at = models.DateTimeField(null=True, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -333,9 +355,21 @@ class Tournament(models.Model):
 			if not match.team_one_id or not match.team_two_id:
 				continue
 
-			for team, sets, points in (
-				(match.team_one, match.team_one_sets_won, match.accumulated_points(match.team_one_position)),
-				(match.team_two, match.team_two_sets_won, match.accumulated_points(match.team_two_position)),
+			for team, sets, points, games_for, games_against in (
+				(
+					match.team_one,
+					match.team_one_sets_won,
+					match.accumulated_points(match.team_one_position),
+					match.team_one_sets_won,
+					match.team_two_sets_won,
+				),
+				(
+					match.team_two,
+					match.team_two_sets_won,
+					match.accumulated_points(match.team_two_position),
+					match.team_two_sets_won,
+					match.team_one_sets_won,
+				),
 			):
 				if team is None:
 					continue
@@ -348,21 +382,87 @@ class Tournament(models.Model):
 						"losses": 0,
 						"sets": 0,
 						"points": 0,
+						"games_for": 0,
+						"games_against": 0,
 					},
 				)
 				entry["matches"] += 1
 				entry["sets"] += sets
 				entry["points"] += points
+				entry["games_for"] += games_for
+				entry["games_against"] += games_against
 				if match.winner_id == team.id:
 					entry["wins"] += 1
 				else:
 					entry["losses"] += 1
 
+		ordered = []
+		for entry in standings.values():
+			entry["game_balance"] = entry["games_for"] - entry["games_against"]
+			ordered.append(entry)
 		return sorted(
-			standings.values(),
-			key=lambda item: (item["wins"], item["sets"], item["points"]),
+			ordered,
+			key=lambda item: (item["wins"], item["game_balance"], item["games_for"]),
 			reverse=True,
 		)
+
+
+class TournamentParticipant(models.Model):
+	"""Participant added to a specific tournament."""
+
+	tournament = models.ForeignKey(
+		Tournament,
+		on_delete=models.CASCADE,
+		related_name="participants",
+	)
+	participant = models.ForeignKey(
+		Participant,
+		on_delete=models.CASCADE,
+		related_name="tournament_entries",
+	)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		unique_together = ("tournament", "participant")
+		ordering = ("participant__full_name",)
+
+	def __str__(self) -> str:  # pragma: no cover
+		return f"{self.participant.full_name} em {self.tournament.name}"
+
+
+class TournamentTeam(models.Model):
+	"""Team enrolled into a tournament with optional grouping metadata."""
+
+	class Stage(models.TextChoices):
+		GROUP = "group", "Fase de grupos"
+		KNOCKOUT = "knockout", "Mata-mata"
+
+	tournament = models.ForeignKey(
+		Tournament,
+		on_delete=models.CASCADE,
+		related_name="enrolled_teams",
+	)
+	team = models.ForeignKey(
+		Team,
+		on_delete=models.CASCADE,
+		related_name="tournament_presences",
+	)
+	group_label = models.CharField(max_length=5, blank=True)
+	stage = models.CharField(
+		max_length=15,
+		choices=Stage.choices,
+		default=Stage.GROUP,
+	)
+	seed = models.PositiveSmallIntegerField(null=True, blank=True)
+	is_eliminated = models.BooleanField(default=False)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		unique_together = ("tournament", "team")
+		ordering = ("group_label", "team__name")
+
+	def __str__(self) -> str:  # pragma: no cover
+		return f"{self.team.name} em {self.tournament.name}"
 
 
 class Match(models.Model):
@@ -462,6 +562,45 @@ class Match(models.Model):
 		self.winner = winner
 		if commit:
 			self.save(update_fields=["team_one_sets_won", "team_two_sets_won", "winner"])
+
+
+class Sponsor(models.Model):
+	"""Patrocinadores exibidos no portal."""
+
+	name = models.CharField(max_length=120)
+	logo = models.ImageField(upload_to="sponsors/")
+	website = models.URLField(blank=True)
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ("-created_at", "name")
+
+	def __str__(self) -> str:  # pragma: no cover
+		return self.name
+
+
+class LandingStat(models.Model):
+	"""Armazena estatísticas simples da landing page."""
+
+	total_views = models.PositiveBigIntegerField(default=0)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	def __str__(self) -> str:  # pragma: no cover
+		return f"Análises da landing ({self.total_views} acessos)"
+
+
+class LandingAccess(models.Model):
+	"""Registro individual de IPs que acessaram a landing."""
+
+	ip_address = models.GenericIPAddressField(unique=True)
+	user_agent = models.CharField(max_length=255, blank=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	def __str__(self) -> str:  # pragma: no cover
+		return f"{self.ip_address}"
 
 
 class SetScore(models.Model):

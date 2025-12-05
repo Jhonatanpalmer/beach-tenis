@@ -17,6 +17,7 @@ from .models import (
     SetScore,
     Team,
     Tournament,
+    TournamentParticipant,
 )
 
 
@@ -30,17 +31,25 @@ class CategoryForm(forms.ModelForm):
 class ParticipantForm(forms.ModelForm):
     class Meta:
         model = Participant
-        fields = ["full_name", "birth_date", "gender", "category", "notes"]
+        fields = ["full_name", "birth_date", "gender", "category"]
         labels = {
             "full_name": "Nome completo",
             "birth_date": "Data de nascimento",
             "gender": "Gênero",
             "category": "Categoria",
-            "notes": "Observações",
         }
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
         }
+
+    #### Definir genero como Masculino e Feminino apenas
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["gender"].choices = [
+            (Participant.Gender.MALE, "Masculino"),
+            (Participant.Gender.FEMALE, "Feminino"),
+        ]
+        self.fields["category"].queryset = Category.objects.filter(is_default=True).order_by("name")
 
 
 class TeamForm(forms.ModelForm):
@@ -112,7 +121,13 @@ class TeamForm(forms.ModelForm):
         return cleaned
 
 
+
+#### Criação do Formulário de Torneio, onde será definido os dados do torneio
 class TournamentForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = Category.objects.filter(is_default=True).order_by("name")
+
     class Meta:
         model = Tournament
         fields = [
@@ -123,10 +138,6 @@ class TournamentForm(forms.ModelForm):
             "start_date",
             "end_date",
             "max_sets",
-            "tie_break_enabled",
-            "tie_break_points",
-            "tie_break_margin",
-            "notes",
         ]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
@@ -134,13 +145,227 @@ class TournamentForm(forms.ModelForm):
         }
         labels = {
             "name": "Nome do torneio",
-            "tie_break_enabled": "Habilitar tie-break?",
-            "tie_break_points": "Pontos do tie-break",
-            "tie_break_margin": "+2 Obrigatório",
+            "category": "Categoria",
+            "division": "Divisão",
+            "location": "Localização",
+            "start_date": "Data de início",
+            "end_date": "Data de fim",
+            "max_sets": "Quantidade de sets",
         }
 
 
+class TournamentParticipantForm(forms.Form):
+    participants = forms.ModelMultipleChoiceField(
+        label="Participantes elegíveis",
+        queryset=Participant.objects.none(),
+        widget=forms.SelectMultiple(attrs={"size": 12}),
+        help_text="Somente atletas dentro da divisão/categoria do torneio.",
+    )
+
+    def __init__(self, tournament: Tournament, *args, **kwargs):
+        self.tournament = tournament
+        super().__init__(*args, **kwargs)
+        self.fields["participants"].queryset = self._eligible_participants()
+
+    def _eligible_participants(self):
+        queryset = Participant.objects.select_related("category").order_by("full_name")
+        if self.tournament.category_id:
+            queryset = queryset.filter(category_id=self.tournament.category_id)
+
+        gender_filter = {
+            Team.Division.MALE: [Participant.Gender.MALE, Participant.Gender.MIXED],
+            Team.Division.FEMALE: [Participant.Gender.FEMALE, Participant.Gender.MIXED],
+        }
+        allowed_genders = gender_filter.get(self.tournament.division)
+        if allowed_genders:
+            queryset = queryset.filter(gender__in=allowed_genders)
+
+        existing_ids = TournamentParticipant.objects.filter(tournament=self.tournament).values_list(
+            "participant_id", flat=True
+        )
+        return queryset.exclude(id__in=existing_ids)
+
+
+class TournamentManualPairForm(forms.Form):
+    player_one = forms.ModelChoiceField(
+        label="Jogador(a) 1",
+        queryset=Participant.objects.none(),
+    )
+    player_two = forms.ModelChoiceField(
+        label="Jogador(a) 2",
+        queryset=Participant.objects.none(),
+    )
+    custom_name = forms.CharField(
+        label="Nome da dupla (opcional)",
+        max_length=120,
+        required=False,
+    )
+
+    def __init__(self, tournament: Tournament, *args, **kwargs):
+        self.tournament = tournament
+        super().__init__(*args, **kwargs)
+        available = self._available_participants()
+        self.fields["player_one"].queryset = available
+        self.fields["player_two"].queryset = available
+
+    def _available_participants(self):
+        assigned_ids: set[int] = set()
+        for entry in self.tournament.enrolled_teams.select_related("team__player_one", "team__player_two"):
+            if entry.team.player_one_id:
+                assigned_ids.add(entry.team.player_one_id)
+            if entry.team.player_two_id:
+                assigned_ids.add(entry.team.player_two_id)
+        participant_ids = TournamentParticipant.objects.filter(tournament=self.tournament).values_list(
+            "participant_id", flat=True
+        )
+        queryset = Participant.objects.filter(id__in=participant_ids).order_by("full_name")
+        if assigned_ids:
+            queryset = queryset.exclude(id__in=assigned_ids)
+        return queryset
+
+    def clean(self):
+        cleaned = super().clean()
+        player_one = cleaned.get("player_one")
+        player_two = cleaned.get("player_two")
+        if player_one and player_two and player_one == player_two:
+            raise ValidationError("Escolha atletas diferentes para formar a dupla.")
+        return cleaned
+
+
+class TournamentAutoPairForm(forms.Form):
+    shuffle = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Sortear automaticamente",
+        help_text="Mantém os participantes em ordem aleatória antes de formar as duplas.",
+    )
+
+
+class TournamentGroupingForm(forms.Form):
+    create_groups = forms.BooleanField(
+        required=False,
+        label="Criar grupos automaticamente",
+        initial=True,
+    )
+    group_size = forms.IntegerField(
+        label="Duplas por grupo",
+        min_value=2,
+        initial=3,
+        help_text="Define o tamanho-alvo de cada grupo.",
+    )
+    qualifiers_per_group = forms.IntegerField(
+        label="Classificados por grupo",
+        min_value=1,
+        initial=2,
+        help_text="Número padrão de duplas avançando para o mata-mata.",
+    )
+    small_group_qualifiers = forms.IntegerField(
+        label="Classificados em grupos menores",
+        min_value=1,
+        initial=1,
+        help_text="Usado quando um grupo tiver menos duplas que o tamanho-alvo.",
+    )
+    build_knockout = forms.BooleanField(
+        required=False,
+        label="Gerar mata-mata",
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        group_size = cleaned.get("group_size")
+        qualifiers = cleaned.get("qualifiers_per_group")
+        small_qualifiers = cleaned.get("small_group_qualifiers")
+        if group_size and qualifiers and qualifiers > group_size:
+            self.add_error("qualifiers_per_group", "Classificados por grupo não pode exceder o tamanho do grupo.")
+        if group_size and small_qualifiers and small_qualifiers > group_size:
+            self.add_error("small_group_qualifiers", "Classificados em grupos menores não pode exceder o tamanho do grupo.")
+        if qualifiers and small_qualifiers and small_qualifiers > qualifiers:
+            self.add_error("small_group_qualifiers", "Use um valor menor ou igual ao número padrão de classificados.")
+        return cleaned
+
+
+class TournamentQuickResultForm(forms.Form):
+    round_name = forms.CharField(
+        label="Fase/Etapa",
+        max_length=80,
+        initial="Fase de grupos",
+        help_text="Ex.: Grupos, Quartas, Semi, Final.",
+    )
+    team_one = forms.ModelChoiceField(
+        label="Dupla A",
+        queryset=Team.objects.none(),
+    )
+    team_two = forms.ModelChoiceField(
+        label="Dupla B",
+        queryset=Team.objects.none(),
+    )
+    team_one_sets = forms.IntegerField(label="Game da dupla A", min_value=0, initial=0)
+    team_two_sets = forms.IntegerField(label="Game da dupla B", min_value=0, initial=0)
+
+    def __init__(self, tournament: Tournament, *args, **kwargs):
+        self.tournament = tournament
+        super().__init__(*args, **kwargs)
+        teams = Team.objects.filter(tournament_presences__tournament=tournament).order_by("name")
+        self.fields["team_one"].queryset = teams
+        self.fields["team_two"].queryset = teams
+
+    def clean(self):
+        cleaned = super().clean()
+        team_one = cleaned.get("team_one")
+        team_two = cleaned.get("team_two")
+        sets_one = cleaned.get("team_one_sets")
+        sets_two = cleaned.get("team_two_sets")
+        if team_one and team_two and team_one == team_two:
+            raise ValidationError("Escolha duplas diferentes para registrar o resultado.")
+        if sets_one is not None and sets_two is not None and sets_one == sets_two:
+            raise ValidationError("Defina um vencedor — os sets não podem empatar.")
+        return cleaned
+
+
+class MatchGameEditForm(forms.Form):
+    match_id = forms.IntegerField(widget=forms.HiddenInput)
+    team_one_sets = forms.IntegerField(label="Game da dupla A", min_value=0)
+    team_two_sets = forms.IntegerField(label="Game da dupla B", min_value=0)
+
+    def __init__(self, match: Match | None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if match:
+            self.fields["match_id"].initial = match.pk
+            self.fields["team_one_sets"].initial = match.team_one_sets_won
+            self.fields["team_two_sets"].initial = match.team_two_sets_won
+
+    def clean(self):
+        cleaned = super().clean()
+        sets_one = cleaned.get("team_one_sets")
+        sets_two = cleaned.get("team_two_sets")
+        if sets_one is not None and sets_two is not None and sets_one == sets_two:
+            raise ValidationError("Os sets não podem empatar. Informe um vencedor.")
+        return cleaned
+
+
 class MatchForm(forms.ModelForm):
+    def __init__(self, *args, tournament: Tournament | None = None, **kwargs):
+        self._tournament_instance = tournament or kwargs.get("initial", {}).get("tournament")
+        super().__init__(*args, **kwargs)
+        if self._tournament_instance:
+            self._restrict_teams()
+
+    def _restrict_teams(self) -> None:
+        if not self._tournament_instance:
+            return
+        queryset = Team.objects.order_by("name")
+        if self._tournament_instance.division:
+            queryset = queryset.filter(division=self._tournament_instance.division)
+        if self._tournament_instance.category_id:
+            queryset = queryset.filter(category_id=self._tournament_instance.category_id)
+        enrolled_ids = list(
+            self._tournament_instance.enrolled_teams.values_list("team_id", flat=True)
+        )
+        if enrolled_ids:
+            queryset = queryset.filter(pk__in=enrolled_ids)
+        self.fields["team_one"].queryset = queryset
+        self.fields["team_two"].queryset = queryset
+
     class Meta:
         model = Match
         fields = ["tournament", "round_name", "scheduled_at", "team_one", "team_two", "notes"]

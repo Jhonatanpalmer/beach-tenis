@@ -11,23 +11,25 @@
 
 <section class="card">
     <h2>Categorias cadastradas</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Descrição</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for category in categories %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ category.name }}</td>
-                    <td>{{ category.description|default:"-" }}</td>
+                    <th>Nome</th>
+                    <th>Descrição</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="2">Nenhuma categoria cadastrada.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                    <tr>
+                        <td>{{ category.name }}</td>
+                        <td>{{ category.description|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="2">Nenhuma categoria cadastrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

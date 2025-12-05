@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card sponsor-hero text-center text-md-start border-0 text-white overflow-hidden position-relative">
+    <div class="sponsor-hero__overlay"></div>
+    <div class="sponsor-hero__content position-relative">
+        <span class="badge bg-light text-dark rounded-pill px-3 py-2 mb-3">Parcerias</span>
+        <h1 class="display-5 fw-bold">Seja um patrocinador</h1>
+        <p class="lead mb-4">Conecte sua marca aos torneios de beach tennis do Play do Babuzão e alcance uma comunidade engajada no esporte.</p>
+        <div class="d-flex flex-column flex-md-row gap-3">
+            <a class="btn btn-light btn-lg text-uppercase fw-semibold" href="{{ contact_whatsapp_url }}" target="_blank" rel="noopener noreferrer">Falar com o time</a>
+            <a class="btn btn-outline-light btn-lg" href="{% url 'tournaments:dashboard' %}">Conhecer o painel</a>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4 mt-1">
+    {% for benefit in benefits %}
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm sponsor-benefit">
+                <div class="card-body">
+                    <h2 class="h5 fw-bold mb-2">{{ benefit.title }}</h2>
+                    <p class="text-muted mb-0">{{ benefit.description }}</p>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</section>
+
+<section class="card sponsor-logos border-0 mt-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3">
+        <div>
+            <p class="text-uppercase text-muted mb-1">Nossos parceiros</p>
+            <h2 class="h4 fw-bold mb-0">Marcas que investem no beach tennis</h2>
+        </div>
+        <a class="btn btn-primary rounded-pill px-4" href="{{ contact_whatsapp_url }}" target="_blank" rel="noopener noreferrer">Quero patrocinar</a>
+    </div>
+    <div class="sponsor-logos__grid mt-4">
+        {% if sponsors %}
+            {% for sponsor in sponsors %}
+                <div class="sponsor-logos__item">
+                    <img src="{{ sponsor.logo.url }}" alt="Logo {{ sponsor.name }}" loading="lazy">
+                    <p class="fw-semibold mb-0">{{ sponsor.name }}</p>
+                    {% if sponsor.website %}
+                        <a class="small" href="{{ sponsor.website }}" target="_blank" rel="noopener noreferrer">Visitar site</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">Nenhum patrocinador ativo por enquanto. Cadastre novos parceiros pelo Django admin e eles aparecerão aqui automaticamente.</p>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+    .sponsor-hero {
+        background: linear-gradient(120deg, rgba(0,0,0,0.7), rgba(255,127,80,0.6)), url("https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=1600&q=80");
+        background-size: cover;
+        background-position: center;
+        border-radius: 28px;
+        padding: 3.5rem;
+    }
+    .sponsor-hero__overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(255,127,80,0.4), rgba(0,0,0,0.45));
+    }
+    .sponsor-hero__content {
+        position: relative;
+        z-index: 1;
+    }
+    .sponsor-benefit {
+        border-radius: 18px;
+    }
+    .sponsor-logos {
+        border-radius: 24px;
+        padding: 2rem;
+    }
+    .sponsor-logos__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+    .sponsor-logos__item {
+        border: 1px solid #f1f1f1;
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-align: center;
+        background: white;
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.9rem;
+    }
+    .sponsor-logos__item img {
+        max-height: 140px;
+        object-fit: contain;
+        width: 100%;
+    }
+    @media (max-width: 768px) {
+        .sponsor-hero {
+            padding: 2.5rem 1.5rem;
+        }
+    }
+</style>
+{% endblock %}

@@ -14,19 +14,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         category, _ = Category.objects.get_or_create(
-            name="Resumo Demo",
-            defaults={"description": "Categoria criada automaticamente para demo", "is_default": False},
+            name="Resumo Automático",
+            defaults={"description": "Categoria criada automaticamente para testes", "is_default": False},
         )
         mixed_team_a = self._create_team(
             category,
-            ("Lucas Demo", "1990-05-05", Participant.Gender.MALE),
-            ("Bianca Demo", "1992-06-06", Participant.Gender.FEMALE),
+            ("Lucas Prado", "1990-05-05", Participant.Gender.MALE),
+            ("Bianca Torres", "1992-06-06", Participant.Gender.FEMALE),
             Team.Division.MIXED,
         )
         mixed_team_b = self._create_team(
             category,
-            ("Pedro Demo", "1989-07-07", Participant.Gender.MALE),
-            ("Lara Demo", "1994-08-08", Participant.Gender.FEMALE),
+            ("Pedro Nunes", "1989-07-07", Participant.Gender.MALE),
+            ("Lara Menezes", "1994-08-08", Participant.Gender.FEMALE),
             Team.Division.MIXED,
         )
 
@@ -35,7 +35,7 @@ class Command(BaseCommand):
             defaults={
                 "category": category,
                 "division": Team.Division.MIXED,
-                "location": "Quadra Demo",
+                "location": "Quadra Central",
                 "start_date": date.today(),
                 "tie_break_enabled": True,
             },
@@ -44,7 +44,7 @@ class Command(BaseCommand):
             tournament=tournament,
             team_one=mixed_team_a,
             team_two=mixed_team_b,
-            defaults={"round_name": "Partida de demonstração"},
+            defaults={"round_name": "Partida ilustrativa"},
         )
         match.team_one_point_sequence = ["15", "30", "40", "GAME"]
         match.team_two_point_sequence = ["15", "30", "30", "40"]

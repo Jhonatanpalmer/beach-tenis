@@ -8,40 +8,88 @@
         </div>
         <span class="status-badge">Modo: {{ guide.get_pairing_mode_display }}</span>
     </div>
+    <div class="actions-row">
+        {% if guide.finished_at %}
+            <span class="status-badge status-badge--success">Finalizado em {{ guide.finished_at|date:"d/m/Y H:i" }}</span>
+        {% else %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="finalize">
+                <button type="submit" {% if not can_finalize %}disabled{% endif %}>Finalizar torneio rápido</button>
+            </form>
+            {% if not can_finalize %}
+                <span class="muted-text">Registre pelo menos uma partida para liberar o botão de finalizar.</span>
+            {% endif %}
+        {% endif %}
+    </div>
     <p>Compartilhe esta página para acompanhar o Torneio Rápido. Após cada partida, registre o placar e veja o destaque automático de vencedores (verde) e perdedores (vermelho).</p>
 </section>
+
+{% if podium.champion or podium.runner_up or podium.third_place %}
+<section class="card">
+    <h3>Pódio do dia</h3>
+    <ol class="podium-list">
+        <li>
+            <strong>1º lugar:</strong>
+            {% if podium.champion %}
+                {{ podium.champion.name }}
+            {% else %}
+                <span class="muted-text">Aguardando definição</span>
+            {% endif %}
+        </li>
+        <li>
+            <strong>2º lugar:</strong>
+            {% if podium.runner_up %}
+                {{ podium.runner_up.name }}
+            {% else %}
+                <span class="muted-text">Aguardando definição</span>
+            {% endif %}
+        </li>
+        <li>
+            <strong>3º lugar:</strong>
+            {% if podium.third_place %}
+                {{ podium.third_place.name }}
+            {% else %}
+                <span class="muted-text">Aguardando definição</span>
+            {% endif %}
+        </li>
+    </ol>
+</section>
+{% endif %}
 
 <section class="card">
     <h3>Classificação do dia</h3>
     {% if matches %}
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Dupla</th>
-                    <th>J</th>
-                    <th>V</th>
-                    <th>D</th>
-                    <th>Games +</th>
-                    <th>Games -</th>
-                    <th>Saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in standings %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ row.team.name }}</td>
-                        <td>{{ row.matches }}</td>
-                        <td>{{ row.wins }}</td>
-                        <td>{{ row.losses }}</td>
-                        <td>{{ row.games_for }}</td>
-                        <td>{{ row.games_against }}</td>
-                        <td>{{ row.game_diff }}</td>
+                        <th>#</th>
+                        <th>Dupla</th>
+                        <th>J</th>
+                        <th>V</th>
+                        <th>D</th>
+                        <th>Games +</th>
+                        <th>Games -</th>
+                        <th>Saldo</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for row in standings %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ row.team.name }}</td>
+                            <td>{{ row.matches }}</td>
+                            <td>{{ row.wins }}</td>
+                            <td>{{ row.losses }}</td>
+                            <td>{{ row.games_for }}</td>
+                            <td>{{ row.games_against }}</td>
+                            <td>{{ row.game_diff }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <p class="muted-text">Os times aparecerão aqui assim que a primeira partida for registrada.</p>
     {% endif %}
@@ -63,50 +111,58 @@
 
 <section class="card">
     <h3>Montar duplas</h3>
-    <div class="actions-row">
+    {% if allow_editing %}
+        <div class="actions-row">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="random_pair">
+                <button type="submit" {% if available_participants|length < 2 %}disabled{% endif %}>Sortear duplas automaticamente</button>
+            </form>
+            {% if available_participants|length < 2 %}
+                <span class="muted-text">Cadastre mais participantes ou libere jogadores para novos sorteios.</span>
+            {% endif %}
+        </div>
+        <h4>Selecionar manualmente</h4>
         <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="action" value="random_pair">
-            <button type="submit" {% if available_participants|length < 2 %}disabled{% endif %}>Sortear duplas automaticamente</button>
+            <input type="hidden" name="action" value="manual_pair">
+            {{ pair_form.as_p }}
+            <button type="submit" {% if not manual_pair_available %}disabled{% endif %}>Adicionar dupla</button>
         </form>
-        {% if available_participants|length < 2 %}
-            <span class="muted-text">Cadastre mais participantes ou libere jogadores para novos sorteios.</span>
-        {% endif %}
-    </div>
-    <h4>Selecionar manualmente</h4>
-    <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="manual_pair">
-        {{ pair_form.as_p }}
-        <button type="submit" {% if not manual_pair_available %}disabled{% endif %}>Adicionar dupla</button>
-    </form>
+    {% else %}
+        <p class="muted-text">Este torneio foi finalizado. A formação de novas duplas está bloqueada.</p>
+    {% endif %}
 </section>
 
 <section class="card">
     <h3>Duplas formadas</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Dupla</th>
-                <th>Jogadores</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for team in teams %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ team.name }}</td>
-                    <td>{{ team.player_one.name }} + {{ team.player_two.name }}</td>
+                    <th>Dupla</th>
+                    <th>Jogadores</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="2">Monte ou sorteie as duplas para começar.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.player_one.name }} + {{ team.player_two.name }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="2">Monte ou sorteie as duplas para começar.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 
 <section class="card">
     <h3>Registrar partida</h3>
-    {% if teams|length < 2 %}
+    {% if not allow_editing %}
+        <p class="muted-text">Este torneio foi finalizado. Novos resultados não podem ser registrados.</p>
+    {% elif teams|length < 2 %}
         <p class="muted-text">Cadastre pelo menos duas duplas para liberar o registro de partidas.</p>
     {% else %}
         <form method="post">
@@ -122,6 +178,32 @@
                 <a href="{% url 'tournaments:daily_guide_detail' guide.pk %}" class="btn-secondary">Cancelar edição</a>
             {% endif %}
         </form>
+        <script>
+        (function() {
+            const teamOne = document.getElementById("id_match-team_one");
+            const teamTwo = document.getElementById("id_match-team_two");
+            if (!teamOne || !teamTwo) {
+                return;
+            }
+            const sync = (source, target) => {
+                const selected = source.value;
+                Array.from(target.options).forEach(option => {
+                    option.disabled = selected && option.value === selected;
+                });
+                if (selected && target.value === selected) {
+                    target.selectedIndex = 0;
+                }
+            };
+            teamOne.addEventListener("change", () => {
+                sync(teamOne, teamTwo);
+            });
+            teamTwo.addEventListener("change", () => {
+                sync(teamTwo, teamOne);
+            });
+            sync(teamOne, teamTwo);
+            sync(teamTwo, teamOne);
+        })();
+        </script>
     {% endif %}
 </section>
 
@@ -137,9 +219,11 @@
                 <span>{{ match.team_two.name }}</span>
                 <span>{{ match.team_two_score }}</span>
             </div>
-            <div>
-                <a class="btn-secondary" href="{% url 'tournaments:daily_guide_detail' guide.pk %}?editar={{ match.id }}">Editar</a>
-            </div>
+            {% if allow_editing %}
+                <div>
+                    <a class="btn-secondary" href="{% url 'tournaments:daily_guide_detail' guide.pk %}?editar={{ match.id }}">Editar</a>
+                </div>
+            {% endif %}
         </div>
     {% empty %}
         <p class="muted-text">Ainda não há partidas registradas.</p>

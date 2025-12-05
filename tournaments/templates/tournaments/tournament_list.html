@@ -11,27 +11,29 @@
 
 <section class="card">
     <h2>Torneios</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Divisão</th>
-                <th>Período</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tournament in tournaments %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ tournament.name }}</td>
-                    <td>{{ tournament.get_division_display }}</td>
-                    <td>{{ tournament.start_date }} {% if tournament.end_date %}- {{ tournament.end_date }}{% endif %}</td>
-                    <td><a href="{% url 'tournaments:tournament_detail' tournament.pk %}">Detalhes</a></td>
+                    <th>Nome</th>
+                    <th>Divisão</th>
+                    <th>Período</th>
+                    <th>Ações</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="4">Cadastre seu primeiro torneio.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for tournament in tournaments %}
+                    <tr>
+                        <td>{{ tournament.name }}</td>
+                        <td>{{ tournament.get_division_display }}</td>
+                        <td>{{ tournament.start_date }} {% if tournament.end_date %}- {{ tournament.end_date }}{% endif %}</td>
+                        <td><a href="{% url 'tournaments:tournament_detail' tournament.pk %}">Detalhes</a></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">Cadastre seu primeiro torneio.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

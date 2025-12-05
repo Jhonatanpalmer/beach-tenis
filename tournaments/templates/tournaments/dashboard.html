@@ -1,69 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-    <h2>Torneios ativos</h2>
-    <div class="grid">
-        {% for tournament in tournaments %}
-            <article class="card">
-                <h3><a href="{% url 'tournaments:tournament_detail' tournament.pk %}">{{ tournament.name }}</a></h3>
-                <p>{{ tournament.start_date }} {% if tournament.end_date %}- {{ tournament.end_date }}{% endif %}</p>
-                <p>Divisão: {{ tournament.get_division_display }} {% if tournament.category %}| Categoria {{ tournament.category.name }}{% endif %}</p>
-            </article>
-        {% empty %}
-            <p>Nenhum torneio cadastrado ainda.</p>
-        {% endfor %}
+    <h2>Mural dos campeões</h2>
+    <p class="muted-text">Histórico dos últimos torneios rápidos finalizados.</p>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Evento</th>
+                    <th>1º lugar</th>
+                    <th>2º lugar</th>
+                    <th>3º lugar</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in champion_page_obj %}
+                    <tr>
+                        <td>{{ entry.tournament }}</td>
+                        <td>{{ entry.champion|default:"-" }}</td>
+                        <td>{{ entry.runner_up|default:"-" }}</td>
+                        <td>{{ entry.third_place|default:"-" }}</td>
+                        <td>{% if entry.finished_at %}{{ entry.finished_at|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="muted-text">Finalize um torneio rápido para inaugurar o mural.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+    {% if champion_page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+            {% if champion_page_obj.has_previous %}
+                <a href="?champion_page={{ champion_page_obj.previous_page_number }}&pneu_page={{ pneu_page_param }}">← Página anterior</a>
+            {% endif %}
+            <span>Página {{ champion_page_obj.number }} de {{ champion_page_obj.paginator.num_pages }}</span>
+            {% if champion_page_obj.has_next %}
+                <a href="?champion_page={{ champion_page_obj.next_page_number }}&pneu_page={{ pneu_page_param }}">Próxima página →</a>
+            {% endif %}
+        </div>
+    {% endif %}
 </section>
 
 <section class="card">
-    <h2>Últimos participantes</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Gênero</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for participant in latest_participants %}
+    <h2>Mural dos pneus</h2>
+    <p class="muted-text">Duplas que sofreram placar zerado (5x0, 6x0 etc.).</p>
+    <div class="table-wrapper">
+        <table class="pneu-table">
+            <thead>
                 <tr>
-                    <td>{{ participant.full_name }}</td>
-                    <td>{{ participant.category.name }}</td>
-                    <td>{{ participant.get_gender_display }}</td>
+                    <th>Dupla A</th>
+                    <th>Placar</th>
+                    <th>Dupla B</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="3">Cadastre ao menos um participante.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
-
-<section class="card">
-    <h2>Partidas recentes</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Torneio</th>
-                <th>Dupla A</th>
-                <th>Dupla B</th>
-                <th>Sets</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for match in upcoming_matches %}
-                <tr>
-                    <td>{{ match.tournament.name }}</td>
-                    <td>{{ match.team_one.name }}</td>
-                    <td>{{ match.team_two.name }}</td>
-                    <td>{{ match.team_one_sets_won }} x {{ match.team_two_sets_won }}</td>
-                    <td><a href="{% url 'tournaments:match_result' match.pk %}">Registrar resultado</a></td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5">Nenhuma partida cadastrada.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for entry in pneu_page_obj %}
+                    <tr>
+                        <td>{{ entry.team_one_name }}</td>
+                        <td class="pneu-table__score">
+                            <span class="{% if entry.has_zero %}pneu-score-zero{% endif %}">{{ entry.score_text }}</span>
+                            {% if entry.source_label %}<div class="pneu-source">{{ entry.source_label }}</div>{% endif %}
+                        </td>
+                        <td>{{ entry.team_two_name }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="3" class="muted-text">Nenhum pneu registrado por enquanto.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if pneu_page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+            {% if pneu_page_obj.has_previous %}
+                <a href="?champion_page={{ champion_page_param }}&pneu_page={{ pneu_page_obj.previous_page_number }}">← Página anterior</a>
+            {% endif %}
+            <span>Página {{ pneu_page_obj.number }} de {{ pneu_page_obj.paginator.num_pages }}</span>
+            {% if pneu_page_obj.has_next %}
+                <a href="?champion_page={{ champion_page_param }}&pneu_page={{ pneu_page_obj.next_page_number }}">Próxima página →</a>
+            {% endif %}
+        </div>
+    {% endif %}
 </section>
 {% endblock %}

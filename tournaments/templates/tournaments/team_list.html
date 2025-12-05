@@ -1,64 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-    <h2>Cadastrar dupla</h2>
-    <form method="get" class="search-form">
-        <div class="search-form__controls">
-            <div>
-                <label for="division-filter">Filtrar divisão</label>
-                <select id="division-filter" name="division">
-                    <option value="">Todas</option>
-                    {% for value, label in division_choices %}
-                        <option value="{{ value }}" {% if division_filter == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="category-filter">Filtrar categoria</label>
-                <select id="category-filter" name="category">
-                    <option value="">Todas</option>
-                    {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category_filter|add:"" == category.id|add:"" %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <button type="submit">Aplicar filtros</button>
-                <a class="btn-secondary" href="{% url 'tournaments:team_list' %}">Limpar</a>
-            </div>
-        </div>
-    </form>
-    <p class="muted-text">Selecione a divisão/categoria antes de escolher os atletas; a lista vai mostrar somente jogadores compatíveis.</p>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Salvar</button>
-    </form>
-</section>
-
-<section class="card">
     <h2>Duplas</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Divisão</th>
-                <th>Jogadores</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for team in teams %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ team.name }}</td>
-                    <td>{{ team.category.name }}</td>
-                    <td>{{ team.get_division_display }}</td>
-                    <td>{{ team.player_one.full_name }} + {{ team.player_two.full_name }}</td>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>Divisão</th>
+                    <th>Jogadores</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="4">Nenhuma dupla por enquanto.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.category.name }}</td>
+                        <td>{{ team.get_division_display }}</td>
+                        <td>{{ team.player_one.full_name }} + {{ team.player_two.full_name }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">Nenhuma dupla por enquanto.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

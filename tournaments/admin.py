@@ -11,6 +11,7 @@ from .models import (
 	Match,
 	Participant,
 	SetScore,
+	Sponsor,
 	Team,
 	Tournament,
 )
@@ -98,3 +99,10 @@ class DailyMatchAdmin(admin.ModelAdmin):
 	list_display = ("guide", "team_one", "team_two", "team_one_score", "team_two_score", "winner")
 	list_filter = ("guide",)
 	search_fields = ("team_one__name", "team_two__name", "guide__name")
+
+
+@admin.register(Sponsor)
+class SponsorAdmin(admin.ModelAdmin):
+	list_display = ("name", "is_active", "created_at")
+	list_filter = ("is_active",)
+	search_fields = ("name",)

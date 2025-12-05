@@ -1,4 +1,4 @@
-"""Management command to populate demo Beach Tennis data."""
+"""Management command to populate sample Beach Tennis data."""
 
 from __future__ import annotations
 
@@ -115,7 +115,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--force",
             action="store_true",
-            help="Remove dados de demonstração previamente criados antes de popular novamente.",
+            help="Remove dados de exemplo previamente criados antes de popular novamente.",
         )
 
     def handle(self, *args, **options):
@@ -126,7 +126,7 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             if force:
-                self.stdout.write("Removendo dados anteriores marcados como demonstração...")
+                self.stdout.write("Removendo dados anteriores marcados como exemplo...")
                 Tournament.objects.filter(notes=SEED_NOTES).delete()
                 Participant.objects.filter(notes=SEED_NOTES).delete()
 

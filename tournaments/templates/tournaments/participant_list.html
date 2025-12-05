@@ -12,39 +12,110 @@
 <hr class="section-divider">
 
 <section class="card">
-    <h2>Participantes</h2>
+    <h2>Pesquisar participantes</h2>
     <form method="get" class="search-form">
-        <label for="participant-search">Pesquisar participante</label>
+        <div class="search-grid">
+            <div class="form-field">
+                <label for="filter-name">Nome</label>
+                <input id="filter-name" type="text" name="name" placeholder="Digite o nome" value="{{ name_query }}">
+            </div>
+            <div class="form-field">
+                <label for="filter-category">Categoria</label>
+                <select id="filter-category" name="category">
+                    <option value="">Todas as categorias</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter|stringformat:'s' == category.id|stringformat:'s' %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="filter-gender">Gênero</label>
+                <select id="filter-gender" name="gender">
+                    <option value="">Todos</option>
+                    {% for value, label in gender_choices %}
+                        <option value="{{ value }}" {% if gender_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="filter-birth-date">Data de nascimento</label>
+                <input id="filter-birth-date" type="date" name="birth_date" value="{{ birth_date_query }}">
+            </div>
+        </div>
+        <input type="hidden" name="page_size" value="{{ page_size }}">
         <div class="search-form__controls">
-            <input id="participant-search" type="text" name="q" placeholder="Digite um nome" value="{{ search_query }}">
-            <button type="submit">Buscar</button>
-            {% if search_query %}
-                <a class="btn-secondary" href="{% url 'tournaments:participant_list' %}">Limpar</a>
+            <button type="submit">Filtrar</button>
+            {% if has_filters %}
+                <a class="btn-secondary" href="{% url 'tournaments:participant_list' %}">Limpar filtros</a>
             {% endif %}
         </div>
     </form>
-    <p class="muted-text">{{ participants|length }} resultado(s) encontrado(s)</p>
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Gênero</th>
-                <th>Nascimento</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for participant in participants %}
+    <div class="list-toolbar">
+        <p class="muted-text">{{ total_results }} resultado(s) encontrado(s)</p>
+        <form method="get" class="page-size-form">
+            {% if name_query %}
+                <input type="hidden" name="name" value="{{ name_query }}">
+            {% endif %}
+            {% if category_filter %}
+                <input type="hidden" name="category" value="{{ category_filter }}">
+            {% endif %}
+            {% if gender_filter %}
+                <input type="hidden" name="gender" value="{{ gender_filter }}">
+            {% endif %}
+            {% if birth_date_query %}
+                <input type="hidden" name="birth_date" value="{{ birth_date_query }}">
+            {% endif %}
+            <label for="page-size">Mostrar</label>
+            <select id="page-size" name="page_size" onchange="this.form.submit()">
+                {% for option in page_size_options %}
+                    <option value="{{ option }}" {% if option == page_size %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <span>por página</span>
+        </form>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td>{{ participant.full_name }}</td>
-                    <td>{{ participant.category.name }}</td>
-                    <td>{{ participant.get_gender_display }}</td>
-                    <td>{{ participant.birth_date }}</td>
+                    <th>Nome</th>
+                    <th>Categoria</th>
+                    <th>Gênero</th>
+                    <th>Nascimento</th>
                 </tr>
-            {% empty %}
-                <tr><td colspan="4">Cadastre os participantes para começar.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for participant in participants %}
+                    <tr>
+                        <td>{{ participant.full_name }}</td>
+                        <td>{{ participant.category.name }}</td>
+                        <td>{{ participant.get_gender_display }}</td>
+                        <td>{{ participant.birth_date }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">Cadastre os participantes para começar.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+            <div class="pagination__summary">
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </div>
+            <div class="pagination__controls">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if base_querystring %}&{{ base_querystring }}{% endif %}">Anterior</a>
+                {% else %}
+                    <span class="disabled">Anterior</span>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if base_querystring %}&{{ base_querystring }}{% endif %}">Próxima</a>
+                {% else %}
+                    <span class="disabled">Próxima</span>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
 </section>
 {% endblock %}
