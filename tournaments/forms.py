@@ -468,6 +468,8 @@ class DailyPairForm(forms.ModelForm):
     def __init__(self, guide: DailyGuide, *args, **kwargs):
         self.guide = guide
         super().__init__(*args, **kwargs)
+        # Ensure instance knows the guide before validation so model clean() passes
+        self.instance.guide = guide
         available = guide.participants.exclude(
             dj_models.Q(primary_daily_teams__isnull=False)
             | dj_models.Q(secondary_daily_teams__isnull=False)
